@@ -1,0 +1,104 @@
+
+#R Code #install and load the necessary packages
+install.packages("arules")
+install.packages("readxl")
+library(arules)
+library(readxl)
+
+#read the data into R and convert it into a transaction format
+data <- read_excel("lastfm.xls", sheet = "lastfm", col_names = TRUE, col_types = NULL)
+transactions <- as(split(data$artist, data$user), "transactions")
+
+##run apriori algorithm with additional parameters
+##rules <- apriori(transactions, parameter = list(supp = 0.01, conf = 0.5, maxlen = 3, maxitem = 3, maxrules = 100))
+#run apriori algorithm with additional parameters
+#rules <- apriori(transactions, parameter = list(supp = 0.01, conf = 0.5, maxlen = 3, minlen = 2, minsupport = 0.2, minconfidence = 0.6, maxsize = 10))
+#run apriori algorithm with additional parameters
+#rules <- apriori(transactions, parameter = list(supp = 0.01, conf = 0.5, maxlen = 3, minlen = 2, maxitem = 3, maxrules = 100))
+#run apriori algorithm with additional parameters
+rules <- apriori(transactions, parameter = list(supp = 0.01, conf = 0.5, maxlen = 3, minlen = 2, minsupport = 0.2, minconfidence = 0.6, maxsize = 10))
+
+#mine the association rules
+inspect(rules)
+
+#create a prediction object
+pred <- predict(transactions, rules, method = "rules")
+
+#evaluate the performance of the mined rules with additional metrics
+perf <- performance(pred, measure=list("coverage","support","confidence"))
+
+#extract the lift metric
+lift <- perf@performance["lift"]
+
+#extract the conviction metric
+conviction <- perf@performance["conviction"]
+
+#extract the coverage metric
+coverage <- perf@performance["coverage"]
+
+#extract the support metric
+support <- perf@performance["support"]
+
+#extract the confidence metric
+confidence <- perf@performance["confidence"]
+
+#extract the RHS of the rules
+community_recommendations <- unique(unlist(rules@rhs))
+
+#extract the user_recommendations
+user_history <- c("artist1", "artist2", "artist3")
+user_recommendations <- unique(unlist(rules@rhs))[user_history]
+
+#print the lift, conviction, coverage, support and confidence metrics
+print(lift)
+print(conviction)
+print(coverage)
+print(support)
+print(confidence)
+
+#print the community and user recommendations
+print(community_recommendations)
+
+#load arulesViz package
+install.packages("arulesViz")
+library(arulesViz)
+
+#visualize the mined rules
+plot(rules, method="graph", control=list(type="items"))
+
+#sort the rules by lift
+rules_with_high_lift <- sort(rules, by="lift", decreasing=TRUE)
+
+#create recommendations for individual users
+user_history <- c("artist1", "artist2", "artist3")
+user_recommendations <- unique(unlist(rules_with_high_lift@rhs))[user_history]
+
+#evaluate the performance of the recommendations
+evaluation <- evaluate(user_recommendations)
+
+#create recommendations for the entire community
+community_recommendations <- unique(unlist(rules_with_high_lift@rhs))
+
+#evaluate the performance of community recommendations
+evaluation <- evaluate(community_recommendations)
+
+#summary of the mined rules
+summary(rules)
+
+#Interest Measures of mined rules
+interestMeasure(rules)
+
+#visualise the mined rules
+plot(rules, method="parallel", control=list(type="items"))
+
+#visualize the mined rules in a graph
+plot(rules, method="graph", control=list(type="items"))
+
+#visualise the mined rules with a scatter plot
+plot(rules, method="scatter", control=list(type="items"))
+
+#visualise the mined rules with a circular graph
+plot(rules, method="graph", control=list(type="items", layout="circle"))
+
+#visualise the mined rules with a heatmap
+plot(rules, method="heatmap", control=list(type="items"))
